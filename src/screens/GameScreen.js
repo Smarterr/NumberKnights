@@ -1,6 +1,8 @@
+import * as Haptics from 'expo-haptics'; // <--- 1. IMPORT HAPTICS
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GameEngine } from 'react-native-game-engine';
+
 import ScrollingBackground from '../components/ScrollingBackground';
 import Sprite from '../components/Sprite';
 import BattleLoop from '../systems/BattleLoop';
@@ -15,7 +17,6 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
   const engineRef = useRef(null);
   
   // --- READ LEVEL DATA ---
-  // If no level data is passed, default to Level 1 settings
   const currentLevelId = levelData ? levelData.id : 1;
   const totalEnemies = levelData ? levelData.monsterCount : 3;
   const monsterMaxHp = levelData ? levelData.monsterHealth : 20;
@@ -38,20 +39,21 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
     },
     Knight: { 
       position: { x: 50, y: 340 }, 
-      renderer: <Sprite row={11} col={0} source={CHAR_SHEET} scale={6} /> 
+      renderer: <Sprite row={1} col={0} source={CHAR_SHEET} scale={6} /> 
     },
     Monster: { 
       position: { x: width + 200, y: 316 }, 
-      health: monsterMaxHp,     // <--- Uses Level Data
-      maxHealth: monsterMaxHp,  // <--- Uses Level Data
+      health: monsterMaxHp,     
+      maxHealth: monsterMaxHp,  
       renderer: <Sprite row={6} col={0} source={CHAR_SHEET} scale={6} /> 
     },
   };
 
   // --- CHECK WIN CONDITION ---
   useEffect(() => {
-    // If we have defeated enough enemies, trigger victory
     if (enemiesDefeated >= totalEnemies) {
+      // 2. SUCCESS HAPTIC (Victory!)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsVictory(true); 
       if (engineRef.current) engineRef.current.stop();
     }
@@ -60,6 +62,8 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
   // --- CHECK LOSS CONDITION ---
   useEffect(() => {
     if (playerHp <= 0) {
+      // 3. HEAVY HAPTIC (Defeat)
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       setIsGameOver(true); 
       if (engineRef.current) engineRef.current.stop();
     }
@@ -70,11 +74,17 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
 
     if (userAns === answer) {
       // CORRECT ANSWER
+      // 4. MEDIUM HAPTIC (Feels like a sword hit)
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      
       if (engineRef.current) engineRef.current.dispatch({ type: "hit" });
       setScore(score + 10);
       generateQuestion();
     } else {
       // WRONG ANSWER
+      // 5. ERROR HAPTIC (Buzz buzz!)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      
       setPlayerHp(prev => prev - 1); 
     }
   };
@@ -86,7 +96,7 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
     setAnswer(a + b);
   };
 
-  // --- RENDER PROGRESS CIRCLES ---
+  // --- RENDERERS ---
   const renderProgress = () => {
     let circles = [];
     for (let i = 0; i < totalEnemies; i++) {
@@ -103,10 +113,7 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
   return (
     <View style={styles.container}>
       
-      {/* --- BATTLE STAGE --- */}
       <View style={styles.battleStage}>
-        
-        {/* PLAYER HP (Top Left) */}
         <View style={styles.hudContainer}>
           <View style={styles.lifeBar}>
              <Text style={styles.hpLabel}>HP</Text>
@@ -118,7 +125,6 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
           </View>
         </View>
 
-        {/* CENTER INFO (Level Title + Circles) */}
         <View style={styles.topCenterContainer}>
           <Text style={styles.levelTitle}>LEVEL {currentLevelId}</Text>
           {renderProgress()}
@@ -132,17 +138,12 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
           style={styles.gameCanvas}
           onEvent={(e) => {
             if (e.type === "monster-killed") {
-               // Increment kill count
                setEnemiesDefeated(prev => prev + 1);
-               
-               // Logic to STOP spawning if we just won happens in BattleLoop or via state check,
-               // but visually the user sees the Victory screen immediately due to useEffect.
             }
           }}
         />
       </View>
 
-      {/* --- CONTROLS --- */}
       <View style={styles.controlPanel}>
         <Text style={styles.score}>Score: {score}</Text>
         <View style={styles.questionBox}>
@@ -157,7 +158,7 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
         </View>
       </View>
 
-      {/* --- GAME OVER MODAL --- */}
+      {/* --- MODALS --- */}
       <Modal visible={isGameOver} transparent={true} animationType="fade">
         <View style={styles.overlayContainer}>
           <View style={styles.card}>
@@ -170,7 +171,6 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
         </View>
       </Modal>
 
-      {/* --- VICTORY MODAL --- */}
       <Modal visible={isVictory} transparent={true} animationType="fade">
         <View style={styles.overlayContainer}>
           <View style={styles.card}>
@@ -215,54 +215,33 @@ const styles = StyleSheet.create({
   },
   gameCanvas: { flex: 1 },
 
-  // --- HUD ---
   hudContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 100,
+    position: 'absolute', top: 50, left: 20, zIndex: 100,
   },
   lifeBar: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.6)', 
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20, 
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.6)', 
+    paddingVertical: 8, paddingHorizontal: 15, borderRadius: 20, 
+    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  hpLabel: {
-    color: '#bdc3c7', fontWeight: '900', fontSize: 14, marginRight: 10,
-  },
+  hpLabel: { color: '#bdc3c7', fontWeight: '900', fontSize: 14, marginRight: 10 },
   heartIcon: { fontSize: 18, marginHorizontal: 2 },
 
-  // --- CENTER PROGRESS (Circles under Text) ---
   topCenterContainer: {
-    position: 'absolute',
-    top: 50,
-    width: '100%',
-    alignItems: 'center', // This centers the column
-    zIndex: 90,
+    position: 'absolute', top: 50, width: '100%', alignItems: 'center', zIndex: 90,
   },
   levelTitle: {
     color: 'white', fontWeight: '900', fontSize: 20,
-    textShadowColor: 'black', textShadowRadius: 3,
-    marginBottom: 8, // Adds space between Text and Circles
-    letterSpacing: 2,
-    fontFamily: 'monospace',
+    textShadowColor: 'black', textShadowRadius: 3, marginBottom: 8,
+    letterSpacing: 2, fontFamily: 'monospace',
   },
   progressContainer: { flexDirection: 'row', gap: 10 },
   progressCircle: {
-    width: 16, height: 16, borderRadius: 8,
-    borderWidth: 2, borderColor: 'white',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center', alignItems: 'center',
+    width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: 'white',
+    backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center',
   },
   filledCircle: { backgroundColor: '#f1c40f', borderColor: '#f1c40f' },
   checkMark: { color: '#000', fontSize: 10, fontWeight: 'bold' },
 
-  // --- CONTROLS ---
   controlPanel: { flex: 0.55, backgroundColor: '#333', alignItems: 'center', padding: 20 },
   score: { color: 'gold', fontSize: 24, marginBottom: 20, fontFamily: 'monospace' },
   questionBox: { backgroundColor: '#000', padding: 20, borderRadius: 10, width: '80%', marginBottom: 30 },
@@ -275,7 +254,6 @@ const styles = StyleSheet.create({
   },
   btnText: { color: 'white', fontSize: 30, fontWeight: 'bold' },
 
-  // --- OVERLAYS ---
   overlayContainer: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center', alignItems: 'center',
