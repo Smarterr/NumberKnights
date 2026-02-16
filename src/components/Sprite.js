@@ -17,13 +17,14 @@ const Sprite = (props) => {
   const scale = props.scale || 4;
   const source = props.source;
 
-  // --- HEALTH DATA ---
+  // --- HEALTH LOGIC ---
   const health = props.health;
   const maxHealth = props.maxHealth;
-  // Only show if health data exists
   const showHealth = health !== undefined && maxHealth !== undefined;
-  // Calculate percentage for the bar width
   const hpPercent = showHealth ? (health / maxHealth) * 100 : 0;
+
+  // Color Logic: Green if high, Yellow if mid, Red if low
+  const barColor = hpPercent > 50 ? '#2ecc71' : hpPercent > 20 ? '#f1c40f' : '#e74c3c';
 
   return (
     <View style={{
@@ -31,51 +32,48 @@ const Sprite = (props) => {
       left: x,
       top: y,
       transform: [{ scale: scale }], 
-      alignItems: 'center', // Centers the bar over the sprite
+      alignItems: 'center', 
     }}>
       
-      {/* === HYBRID HEALTH BAR === */}
+      {/* === PRO HEALTH BAR === */}
       {showHealth && (
         <View style={{
-            // 1. THE CONTAINER (Red Background Bar)
-            width: TILE_SIZE + 2, // Slightly wider than the sprite
-            height: 5,            // Height of the bar
-            backgroundColor: '#c0392b', // Dark red background
-            marginBottom: 2,      // Spacing above head
+            width: TILE_SIZE + 4, // Wider than sprite
+            height: 4,            // Sleek height
+            backgroundColor: '#2c3e50', // Dark Charcoal Background
+            marginBottom: 3,      
+            borderRadius: 2,      // Rounded corners
             borderWidth: 0.5,
-            borderColor: 'black',
-            justifyContent: 'center', // Center text vertically
-            alignItems: 'center',     // Center text horizontally
-            position: 'relative',
-            overflow: 'hidden',       // Keeps green bar inside rounded corners if used
+            borderColor: 'white', // Crisp border
+            justifyContent: 'center', 
+            overflow: 'hidden',   
         }}>
-            {/* 2. THE FILLER (Green Foreground Bar) */}
+            {/* The Fill Bar */}
             <View style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: `${hpPercent}%`, // Dynamic Width based on health
-                backgroundColor: '#2ecc71' // Bright green
+                width: `${hpPercent}%`, 
+                height: '100%',
+                backgroundColor: barColor, // Dynamic Color
             }} />
-
-            {/* 3. THE TEXT OVERLAY (Sits on top) */}
-            <Text style={{
-                position: 'absolute', // Ensures it floats over the colored bars
-                color: 'white',
-                // VERY SMALL FONT because the whole thing is scaled x6 by the parent container
-                fontSize: 3.5,       
-                fontWeight: '900',   // Extra bold to be readable
-                textShadowColor: 'black', // Tiny drop shadow for contrast
-                textShadowRadius: 1,
-                includeFontPadding: false, // Removes extra gaps above/below text
-            }}>
-                {health}/{maxHealth}
-            </Text>
         </View>
       )}
+      
+      {/* Text Number (Floats above the bar) */}
+      {showHealth && (
+        <Text style={{
+            position: 'absolute',
+            top: -5, // Sit right on top of the bar
+            color: 'white',
+            fontSize: 3,       
+            fontWeight: 'bold',
+            textShadowColor: 'black',
+            textShadowRadius: 1,
+            zIndex: 10,
+        }}>
+            {health}/{maxHealth}
+        </Text>
+      )}
 
-      {/* === THE SPRITE IMAGE === */}
+      {/* === SPRITE IMAGE === */}
       <View style={{
         width: TILE_SIZE, 
         height: TILE_SIZE, 

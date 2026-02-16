@@ -1,86 +1,90 @@
 import { registerRootComponent } from 'expo';
 import React, { useState } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, View } from 'react-native'; // <--- Removed SafeAreaView
+
+// --- SCREENS ---
 import GameScreen from './src/screens/GameScreen';
 import LevelSelectScreen from './src/screens/LevelSelectScreen';
 import MenuScreen from './src/screens/MenuScreen';
 
-type LevelData = {
-  id: number;
-  difficulty: number;
-  xpReward: number; // <--- Added type definition
-  monsters: any[];
-};
-
 function App() {
   const [currentScreen, setCurrentScreen] = useState<string>('menu'); 
-  const [maxUnlockedLevel, setMaxUnlockedLevel] = useState<number>(1);
-  const [selectedLevelData, setSelectedLevelData] = useState<LevelData | null>(null);
-
-  // --- NEW XP SYSTEM ---
-  const [totalXp, setTotalXp] = useState<number>(0);
+  const [selectedLevel, setSelectedLevel] = useState<any>(null);
   
-  // Calculate Level: (XP / 100) rounded down, plus 1.
-  // Example: 250 XP = Level 3
-  const playerLevel = Math.floor(totalXp / 100) + 1;
+  // PROGRESS STATE
+  const [highestLevel, setHighestLevel] = useState<number>(1);
+  const [xp, setXp] = useState<number>(0);
 
-  // --- NAVIGATION ---
-  const goMenu = () => setCurrentScreen('menu');
-  const goLevels = () => setCurrentScreen('levels');
-  
-  const startGame = (levelData: any) => {
-    setSelectedLevelData(levelData);
+  // --- NAVIGATION HANDLERS ---
+  const handleStartGame = () => {
+    setCurrentScreen('levelSelect');
+  };
+
+  const handleSelectLevel = (level: any) => {
+    setSelectedLevel(level);
     setCurrentScreen('game');
   };
 
-  const handleLevelComplete = (completedLevelId: number) => {
-    // 1. Give XP!
-    if (selectedLevelData) {
-      setTotalXp(prev => prev + selectedLevelData.xpReward);
-    }
-
-    // 2. Unlock Next Level
-    if (completedLevelId >= maxUnlockedLevel) {
-      setMaxUnlockedLevel(completedLevelId + 1);
-    }
-    goLevels(); 
+  const handleBackToMenu = () => {
+    setCurrentScreen('menu');
   };
 
-  // --- RENDER ---
+  // --- GAME LOGIC ---
+  const handleWin = (levelId: number) => {
+    setXp(prev => prev + 100);
+
+    if (levelId === highestLevel) {
+      setHighestLevel(prev => prev + 1);
+    }
+    setCurrentScreen('levelSelect');
+  };
+
+  const handleExitGame = () => {
+    setCurrentScreen('levelSelect');
+  };
+
+  // --- RENDER SCREEN ---
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'menu':
+        return <MenuScreen onStartGame={handleStartGame} />;
+      case 'levelSelect':
+        return (
+          <LevelSelectScreen 
+            onSelectLevel={handleSelectLevel} 
+            onBack={handleBackToMenu}
+            playerLevel={highestLevel} 
+            playerXp={xp}
+          />
+        );
+      case 'game':
+        return (
+          <GameScreen 
+            levelData={selectedLevel} 
+            onWin={handleWin}   
+            onExit={handleExitGame} 
+          />
+        );
+      default:
+        return <MenuScreen onStartGame={handleStartGame} />;
+    }
+  };
+
   return (
+    // FIX: Changed SafeAreaView to standard View to fix the edges
     <View style={styles.container}>
-      <StatusBar hidden={true} />
-      
-      {currentScreen === 'menu' && (
-        // @ts-ignore
-        <MenuScreen onPlay={goLevels} />
-      )}
-
-      {currentScreen === 'levels' && (
-        <LevelSelectScreen 
-          unlockedLevels={maxUnlockedLevel} 
-          // @ts-ignore
-          onSelectLevel={startGame}
-          onBack={goMenu}
-          playerLevel={playerLevel} // <--- Pass Level
-          playerXp={totalXp}        // <--- Pass XP
-        />
-      )}
-
-      {currentScreen === 'game' && selectedLevelData && (
-        <GameScreen 
-          levelData={selectedLevelData} 
-          // @ts-ignore
-          onWin={handleLevelComplete}
-          onExit={goLevels}
-        />
-      )}
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+      {renderScreen()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: {
+    flex: 1,
+    backgroundColor: '#222',
+  },
 });
 
+export default App;
 registerRootComponent(App);
