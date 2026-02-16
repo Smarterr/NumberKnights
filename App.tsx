@@ -1,6 +1,6 @@
 import { registerRootComponent } from 'expo';
 import React, { useState } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native'; // <--- Removed SafeAreaView
+import { StatusBar, StyleSheet, View } from 'react-native';
 
 // --- SCREENS ---
 import GameScreen from './src/screens/GameScreen';
@@ -9,7 +9,7 @@ import MenuScreen from './src/screens/MenuScreen';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<string>('menu'); 
-  const [selectedLevel, setSelectedLevel] = useState<any>(null);
+  const [selectedLevel, setSelectedLevel] = useState<any>(null); // Fixed: Added <any>
   
   // PROGRESS STATE
   const [highestLevel, setHighestLevel] = useState<number>(1);
@@ -20,7 +20,7 @@ function App() {
     setCurrentScreen('levelSelect');
   };
 
-  const handleSelectLevel = (level: any) => {
+  const handleSelectLevel = (level: any) => { // Fixed: Added type (level: any)
     setSelectedLevel(level);
     setCurrentScreen('game');
   };
@@ -30,7 +30,7 @@ function App() {
   };
 
   // --- GAME LOGIC ---
-  const handleWin = (levelId: number) => {
+  const handleWin = (levelId: number) => { // Fixed: Added type (levelId: number)
     setXp(prev => prev + 100);
 
     if (levelId === highestLevel) {
@@ -47,6 +47,7 @@ function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'menu':
+        // Ensure MenuScreen.js accepts 'onStartGame' as a prop!
         return <MenuScreen onStartGame={handleStartGame} />;
       case 'levelSelect':
         return (
@@ -71,7 +72,6 @@ function App() {
   };
 
   return (
-    // FIX: Changed SafeAreaView to standard View to fix the edges
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       {renderScreen()}

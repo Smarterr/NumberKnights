@@ -1,8 +1,5 @@
 import React from 'react';
-import { Image, Text, View } from 'react-native';
-
-const TILE_SIZE = 16;
-const SPACING = 1; 
+import { Image, View } from 'react-native';
 
 const Sprite = (props) => {
   const position = props.position || { x: props.x || 0, y: props.y || 0 };
@@ -11,10 +8,10 @@ const Sprite = (props) => {
   const row = props.row || 0;
   const col = props.col || 0;
 
-  const left = - (col * (TILE_SIZE + SPACING));
-  const top = - (row * (TILE_SIZE + SPACING));
+  // The size of ONE single frame (e.g. 64x64)
+  const displaySize = props.size || 64; 
 
-  const scale = props.scale || 4;
+  const scale = props.scale || 1;
   const source = props.source;
 
   // --- HEALTH LOGIC ---
@@ -22,8 +19,6 @@ const Sprite = (props) => {
   const maxHealth = props.maxHealth;
   const showHealth = health !== undefined && maxHealth !== undefined;
   const hpPercent = showHealth ? (health / maxHealth) * 100 : 0;
-
-  // Color Logic: Green if high, Yellow if mid, Red if low
   const barColor = hpPercent > 50 ? '#2ecc71' : hpPercent > 20 ? '#f1c40f' : '#e74c3c';
 
   return (
@@ -35,59 +30,44 @@ const Sprite = (props) => {
       alignItems: 'center', 
     }}>
       
-      {/* === PRO HEALTH BAR === */}
+      {/* --- HEALTH BAR (FIXED) --- */}
       {showHealth && (
         <View style={{
-            width: TILE_SIZE + 4, // Wider than sprite
-            height: 4,            // Sleek height
-            backgroundColor: '#2c3e50', // Dark Charcoal Background
-            marginBottom: 3,      
-            borderRadius: 2,      // Rounded corners
+            // FIX: Use a fixed width (32) instead of 'displaySize' (64)
+            // This makes the bar tight and compact over the head.
+            width: 32, 
+            height: 4,            
+            backgroundColor: '#2c3e50', 
+            // FIX: Push it down a bit so it's not floating too high
+            marginTop: 10,
+            marginBottom: 2,      
+            borderRadius: 2,      
             borderWidth: 0.5,
-            borderColor: 'white', // Crisp border
+            borderColor: 'white', 
             justifyContent: 'center', 
             overflow: 'hidden',   
+            zIndex: 10 // Ensure it sits on top
         }}>
-            {/* The Fill Bar */}
             <View style={{
                 width: `${hpPercent}%`, 
                 height: '100%',
-                backgroundColor: barColor, // Dynamic Color
+                backgroundColor: barColor, 
             }} />
         </View>
       )}
-      
-      {/* Text Number (Floats above the bar) */}
-      {showHealth && (
-        <Text style={{
-            position: 'absolute',
-            top: -5, // Sit right on top of the bar
-            color: 'white',
-            fontSize: 3,       
-            fontWeight: 'bold',
-            textShadowColor: 'black',
-            textShadowRadius: 1,
-            zIndex: 10,
-        }}>
-            {health}/{maxHealth}
-        </Text>
-      )}
 
-      {/* === SPRITE IMAGE === */}
+      {/* --- THE SPRITE CROPPER --- */}
       <View style={{
-        width: TILE_SIZE, 
-        height: TILE_SIZE, 
-        overflow: 'hidden' 
+        width: displaySize,   
+        height: displaySize,  
+        overflow: 'hidden',
       }}>
         <Image
           source={source}
           style={{
-            width: 918,
-            height: 203,
             position: 'absolute',
-            left: left, 
-            top: top,   
-            resizeMode: 'nearest'
+            left: -col * displaySize, 
+            top: -row * displaySize,   
           }}
         />
       </View>
