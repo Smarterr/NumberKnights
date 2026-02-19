@@ -14,7 +14,6 @@ const LevelSelectScreen = ({ playerLevel, selectedCategory, onSelectLevel, onBac
         <Text style={styles.subtitle}>CHOOSE LEVEL</Text>
       </View>
 
-      {/* Added extra paddingBottom to the grid so levels don't hide behind the button */}
       <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
         {levels.map((level) => {
           const isUnlocked = level <= playerLevel;
@@ -39,7 +38,7 @@ const LevelSelectScreen = ({ playerLevel, selectedCategory, onSelectLevel, onBac
         })}
       </ScrollView>
 
-      {/* --- MOVED: BOTTOM-LEFT BACK BUTTON --- */}
+      {/* BOTTOM-LEFT BACK BUTTON */}
       <TouchableOpacity 
         style={styles.backButtonBottomLeft} 
         onPress={() => {
@@ -63,37 +62,49 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginBottom: 20,
   },
   title: {
-    color: '#f1c40f', fontSize: 28, fontWeight: '900', letterSpacing: 2, // Slightly smaller to fit "MULTIPLICATION" better
+    color: '#f1c40f', fontSize: 28, fontWeight: '900', letterSpacing: 2, 
   },
   subtitle: {
     color: 'white', fontSize: 18, fontWeight: 'bold', letterSpacing: 1,
   },
   grid: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 15, 
-    paddingBottom: 100, // <--- Increased padding so the bottom row doesn't get covered by the back button
+    paddingBottom: 100, 
     paddingHorizontal: 10,
   },
+  
+  // --- BUTTON SIZES ---
   levelBtn: {
     width: 80, height: 80, justifyContent: 'center', alignItems: 'center',
-    borderRadius: 15, borderBottomWidth: 5,
+    borderRadius: 15, borderBottomWidth: 6, // Slightly thicker bottom for more pop
   },
+  
+  // --- UNLOCKED STYLE ---
   unlockedBtn: {
-    backgroundColor: '#3498db', borderColor: '#2980b9',
+    backgroundColor: '#3498db', 
+    borderColor: '#2980b9',
   },
+  
+  // --- LOCKED STYLE (UPGRADED) ---
   lockedBtn: {
-    backgroundColor: '#34495e', borderColor: '#2c3e50', opacity: 0.7,
+    backgroundColor: '#1a252f', // Dark iron color, clearly separate from the background
+    borderColor: '#0f161c',     // Almost black shadow lip so it retains the 3D look
+    // Removed opacity so it doesn't look washed out
   },
+  
   levelText: {
     color: 'white', fontSize: 28, fontWeight: 'bold',
   },
+  
+  // --- DIM THE LOCK ICON ---
   lockedText: {
     fontSize: 24,
+    opacity: 0.5, // Dims just the lock icon so it doesn't scream for attention
   },
 
-  // --- NEW STYLES: BOTTOM LEFT FIXED POSITION ---
   backButtonBottomLeft: {
     position: 'absolute',
-    bottom: 40, // Keeps it safely above the screen edge
+    bottom: 40, 
     left: 20,
     width: 50,
     height: 50,
@@ -104,7 +115,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4, 
     borderColor: '#1a252f', 
     zIndex: 10,
-    shadowColor: "#000", // Added a little shadow to make it pop over the scrolling grid
+    shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3.84,
