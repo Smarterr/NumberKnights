@@ -1,117 +1,120 @@
+import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { LEVELS } from '../constants/Levels';
 
-const LevelSelectScreen = ({ onSelectLevel, onBack, playerLevel = 1, playerXp = 0 }) => {
+const LevelSelectScreen = ({ playerLevel, selectedCategory, onSelectLevel, onBack }) => {
+  const totalLevelsToShow = Math.max(12, playerLevel + 11);
+  const levels = Array.from({ length: totalLevelsToShow }, (_, i) => i + 1);
+
   return (
     <View style={styles.container}>
       
       <View style={styles.header}>
-        <Text style={styles.title}>SELECT LEVEL</Text>
-        <View style={styles.statsBox}>
-          <Text style={styles.statsText}>LVL {playerLevel}</Text>
-          <Text style={styles.xpText}>XP: {playerXp}</Text>
-        </View>
+        <Text style={styles.title}>{selectedCategory.toUpperCase()}</Text>
+        <Text style={styles.subtitle}>CHOOSE LEVEL</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.levelList}>
-        {LEVELS.map((level) => {
-          const isLocked = level.id > playerLevel;
-
+      {/* Added extra paddingBottom to the grid so levels don't hide behind the button */}
+      <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+        {levels.map((level) => {
+          const isUnlocked = level <= playerLevel;
           return (
             <TouchableOpacity
-              key={level.id}
-              style={[styles.levelButton, isLocked && styles.lockedButton]}
-              onPress={() => !isLocked && onSelectLevel(level)}
-              disabled={isLocked}
+              key={level}
+              style={[
+                styles.levelBtn, 
+                isUnlocked ? styles.unlockedBtn : styles.lockedBtn
+              ]}
+              disabled={!isUnlocked}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onSelectLevel(level);
+              }}
             >
-              {/* FIX: If level.name is missing, fallback to 'Level X' */}
-              <Text style={styles.levelText}>
-                {level.name ? level.name : `Level ${level.id}`}
+              <Text style={[styles.levelText, !isUnlocked && styles.lockedText]}>
+                {isUnlocked ? level : '🔒'}
               </Text>
-              
-              {isLocked && <Text style={styles.icon}>🔒</Text>}
-              {!isLocked && <Text style={styles.icon}>👾 {level.monsterCount}</Text>}
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>BACK TO MENU</Text>
+      {/* --- MOVED: BOTTOM-LEFT BACK BUTTON --- */}
+      <TouchableOpacity 
+        style={styles.backButtonBottomLeft} 
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onBack();
+        }}
+      >
+        <Text style={styles.backArrow}>◀</Text>
       </TouchableOpacity>
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#2c3e50',
-    paddingTop: 60,
+    flex: 1, backgroundColor: '#2c3e50', alignItems: 'center', paddingTop: 60,
   },
+  
   header: {
-    marginBottom: 20,
-    alignItems: 'center',
+    alignItems: 'center', marginBottom: 20,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ecf0f1',
-    fontFamily: 'monospace',
+    color: '#f1c40f', fontSize: 28, fontWeight: '900', letterSpacing: 2, // Slightly smaller to fit "MULTIPLICATION" better
   },
-  statsBox: {
-    flexDirection: 'row',
-    gap: 20,
-    backgroundColor: '#34495e',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 10,
+  subtitle: {
+    color: 'white', fontSize: 18, fontWeight: 'bold', letterSpacing: 1,
   },
-  statsText: { color: '#f1c40f', fontWeight: 'bold', fontSize: 18 },
-  xpText: { color: '#bdc3c7', fontSize: 18 },
-
-  levelList: {
-    paddingBottom: 40,
-    alignItems: 'center', // Center the buttons
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 15, 
+    paddingBottom: 100, // <--- Increased padding so the bottom row doesn't get covered by the back button
+    paddingHorizontal: 10,
   },
-  levelButton: {
-    backgroundColor: '#27ae60',
-    width: '90%', // FIX: Makes them look like "boxes" not bars
-    paddingVertical: 25,
-    paddingHorizontal: 20,
-    borderRadius: 15, // Rounder corners
-    marginBottom: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 5, // 3D effect
-    borderColor: '#1e8449',
+  levelBtn: {
+    width: 80, height: 80, justifyContent: 'center', alignItems: 'center',
+    borderRadius: 15, borderBottomWidth: 5,
   },
-  lockedButton: {
-    backgroundColor: '#7f8c8d',
-    borderColor: '#555',
+  unlockedBtn: {
+    backgroundColor: '#3498db', borderColor: '#2980b9',
+  },
+  lockedBtn: {
+    backgroundColor: '#34495e', borderColor: '#2c3e50', opacity: 0.7,
   },
   levelText: {
+    color: 'white', fontSize: 28, fontWeight: 'bold',
+  },
+  lockedText: {
     fontSize: 24,
-    color: 'white',
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
   },
-  icon: {
-    fontSize: 20,
-    color: '#dff9fb',
-  },
-  backButton: {
-    margin: 20,
-    padding: 15,
-    backgroundColor: '#c0392b',
+
+  // --- NEW STYLES: BOTTOM LEFT FIXED POSITION ---
+  backButtonBottomLeft: {
+    position: 'absolute',
+    bottom: 40, // Keeps it safely above the screen edge
+    left: 20,
+    width: 50,
+    height: 50,
+    backgroundColor: '#34495e', 
+    borderRadius: 25, 
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
+    borderBottomWidth: 4, 
+    borderColor: '#1a252f', 
+    zIndex: 10,
+    shadowColor: "#000", // Added a little shadow to make it pop over the scrolling grid
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  backButtonText: {
+  backArrow: {
     color: 'white',
+    fontSize: 24,
     fontWeight: 'bold',
+    marginLeft: -3, 
   },
 });
 

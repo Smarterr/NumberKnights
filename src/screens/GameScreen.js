@@ -6,6 +6,7 @@ import { GameEngine } from 'react-native-game-engine';
 import ScrollingBackground from '../components/ScrollingBackground';
 import Sprite from '../components/Sprite';
 import BattleLoop from '../systems/BattleLoop';
+import DamageTextSystem from '../systems/DamageTextSystem';
 
 const STEEL_KNIGHT = require('../../assets/SteelKnight.png');
 const ORC = require('../../assets/Orc.png');
@@ -16,12 +17,13 @@ const BG_NIGHT = require('../../assets/ScrollingBackgroundNight.png');
 
 const { width } = Dimensions.get("window");
 
-const GameScreen = ({ levelData, onWin, onExit }) => {
+// NEW: Accepts levelId and category from App.tsx
+const GameScreen = ({ levelId, category, onWin, onExit }) => {
   const engineRef = useRef(null);
   
-  const currentLevelId = levelData ? levelData.id : 1;
-  const totalEnemies = levelData ? levelData.monsterCount : 3;
-  const monsterMaxHp = levelData ? levelData.monsterHealth : 20;
+  // --- SCALING DIFFICULTY (Infinite Generation) ---
+  const monsterMaxHp = 20 + (levelId * 5); 
+  const totalEnemies = 3 + Math.floor(levelId / 5); 
 
   const [randomBg] = useState(() => Math.random() > 0.5 ? BG_DAY : BG_NIGHT);
   const [randomEnemy] = useState(() => Math.random() > 0.5 ? ORC : SKELETON);
@@ -32,9 +34,10 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
   const [isVictory, setIsVictory] = useState(false);
   const [enemiesDefeated, setEnemiesDefeated] = useState(0);
 
-  const [question, setQuestion] = useState("5 + 3");
-  const [answer, setAnswer] = useState(8);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState(0);
 
+  // --- RESTORED: Your correct positions and animation states ---
   const initialEntities = {
     Background: { 
       offset: 0, 
@@ -43,38 +46,73 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
     
     Knight: { 
       position: { x: 50, y: 310 }, 
-      // --- ANIMATION STATE (Moved here so System can change it) ---
       col: 0, 
       row: 3, 
-      sheetCols: 9, // Max columns in sheet
+      sheetCols: 9, 
       sheetRows: 4,
-      timer: 0,     // To track animation speed
-      
-      renderer: <Sprite 
-        source={STEEL_KNIGHT} 
-        size={64} 
-        scale={2} 
-      /> 
+      timer: 0,     
+      renderer: <Sprite source={STEEL_KNIGHT} size={64} scale={2} /> 
     },
     
     Monster: { 
       position: { x: width + 200, y: 290 }, 
       health: monsterMaxHp,     
       maxHealth: monsterMaxHp,  
-      // --- ANIMATION STATE ---
       col: 0,
       row: 1,      
       sheetCols: 9,
       sheetRows: 4,
       timer: 0,
-      
-      renderer: <Sprite 
-        source={randomEnemy} 
-        size={64} 
-        scale={2} 
-      /> 
+      renderer: <Sprite source={randomEnemy} size={64} scale={2} /> 
     },
   };
+
+  // --- INFINITE MATH ALGORITHM ---
+  const generateQuestion = () => {
+    let a, b, q, ans;
+    const scale = levelId;
+
+    switch(category) {
+      case 'addition':
+        a = Math.floor(Math.random() * (5 + scale * 3)) + 1;
+        b = Math.floor(Math.random() * (5 + scale * 3)) + 1;
+        q = `${a} + ${b}`;
+        ans = a + b;
+        break;
+
+      case 'subtraction':
+        a = Math.floor(Math.random() * (10 + scale * 3)) + 5;
+        b = Math.floor(Math.random() * a); 
+        q = `${a} - ${b}`;
+        ans = a - b;
+        break;
+
+      case 'multiplication':
+        a = Math.floor(Math.random() * (3 + Math.floor(scale / 2))) + 1;
+        b = Math.floor(Math.random() * (3 + Math.floor(scale / 2))) + 1;
+        q = `${a} × ${b}`;
+        ans = a * b;
+        break;
+
+      case 'division':
+        b = Math.floor(Math.random() * (2 + Math.floor(scale / 2))) + 2; 
+        ans = Math.floor(Math.random() * (3 + Math.floor(scale / 2))) + 1;
+        a = b * ans;
+        q = `${a} ÷ ${b}`;
+        break;
+
+      default:
+        a = 1; b = 1; q = "1 + 1"; ans = 2;
+    }
+    
+    setQuestion(q);
+    setAnswer(ans);
+  };
+
+  // Generate the very first question when the screen loads
+  useEffect(() => {
+    generateQuestion();
+  }, []);
 
   useEffect(() => {
     if (enemiesDefeated >= totalEnemies) {
@@ -97,20 +135,14 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
 
     if (userAns === answer) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      if (engineRef.current) engineRef.current.dispatch({ type: "hit" });
+      if (engineRef.current) engineRef.current.dispatch({ type: "hit", value: 10 }); 
       setScore(score + 10);
       generateQuestion();
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (engineRef.current) engineRef.current.dispatch({ type: "hurt", value: 1 }); 
       setPlayerHp(prev => prev - 1); 
     }
-  };
-
-  const generateQuestion = () => {
-    const a = Math.floor(Math.random() * 10);
-    const b = Math.floor(Math.random() * 10);
-    setQuestion(`${a} + ${b}`);
-    setAnswer(a + b);
   };
 
   const renderProgress = () => {
@@ -141,13 +173,14 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
         </View>
 
         <View style={styles.topCenterContainer}>
-          <Text style={styles.levelTitle}>LEVEL {currentLevelId}</Text>
+          {/* UPDATED: Uses levelId from props */}
+          <Text style={styles.levelTitle}>LEVEL {levelId}</Text>
           {renderProgress()}
         </View>
 
         <GameEngine
           ref={engineRef}
-          systems={[BattleLoop]} 
+          systems={[DamageTextSystem, BattleLoop]} 
           entities={initialEntities}
           renderer={EntityRenderer} 
           style={styles.gameCanvas}
@@ -179,7 +212,7 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
             <Text style={[styles.overlayTitle, { color: '#e74c3c' }]}>GAME OVER</Text>
             <Text style={styles.overlayScore}>Final Score: {score}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={onExit}>
-              <Text style={styles.btnLabel}>TRY AGAIN</Text>
+              <Text style={styles.btnLabel}>QUIT</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -190,8 +223,9 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
           <View style={styles.card}>
             <Text style={[styles.overlayTitle, { color: '#f1c40f' }]}>VICTORY!</Text>
             <Text style={styles.overlayScore}>Total Score: {score}</Text>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => onWin(currentLevelId)}>
-              <Text style={styles.btnLabel}>NEXT LEVEL</Text>
+            {/* UPDATED: Passes the completed levelId */}
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => onWin(levelId)}>
+              <Text style={styles.btnLabel}>CONTINUE</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -201,8 +235,7 @@ const GameScreen = ({ levelData, onWin, onExit }) => {
   );
 };
 
-// --- UPDATED RENDERER ---
-// This now injects the dynamic 'col', 'row', etc. from the entity into the Sprite
+// --- RESTORED RENDERER ---
 const EntityRenderer = (state, screen) => {
   if (!state) return null;
   return Object.keys(state).map(key => {
@@ -213,7 +246,10 @@ const EntityRenderer = (state, screen) => {
         offset: entity.offset, 
         health: entity.health,
         maxHealth: entity.maxHealth,
-        // PASS ANIMATION PROPS
+        text: entity.text, 
+        color: entity.color,
+        life: entity.life,
+        // RESTORED: PASS ANIMATION PROPS
         col: entity.col,
         row: entity.row,
         sheetCols: entity.sheetCols,
